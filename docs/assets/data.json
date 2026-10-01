@@ -2,7 +2,7 @@
   "meta": {
     "title": "Qwen3.8-27B on DGX Spark",
     "subtitle": "SGLang + NVFP4 + DFlash2 speculative decoding — a measured recipe for the GB10.",
-    "hardware": "One ASUS DGX Spark (GB10): 128 GB unified memory, aarch64, Ubuntu 24.04, driver 580.173.02 / CUDA 13.0, Docker 29.2.1.",
+    "hardware": "One NVIDIA DGX Spark (GB10): 128 GB unified memory, aarch64, Ubuntu 24.04, driver 580.173.02 / CUDA 13.0, Docker 29.2.1.",
     "reproduced": "Reproduced on a second GB10 — boot-to-boot variance is ~8% on single-stream, so read small deltas as noise."
   },
   "headlines": [
