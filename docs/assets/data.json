@@ -66,15 +66,15 @@
     },
     "draft": {
       "label": "Draft tokens",
-      "intro": "--speculative-num-draft-tokens. The optima diverge: 16 is best single-stream, 10 best for concurrent serving. Past 16, accept_len falls — the drafter can no longer sustain long correct runs, so extra draft compute buys rejected tokens.",
+      "intro": "--speculative-num-draft-tokens. The optima diverge: single-stream saturates across 12–16 (78.8 at 14 and 78.6 at 16 are indistinguishable within the ~8% boot-to-boot variance), while 10 is best for concurrent serving. Past 16, accept_len falls — the drafter can no longer sustain long correct runs, so extra draft compute buys rejected tokens.",
       "options": {
         "6":  { "label": "6",  "hint": "single 49.5 · agg@16 404.2" },
         "7":  { "label": "7",  "hint": "single 55.7 · agg@16 386.6" },
         "8":  { "label": "8 · shipped", "hint": "single 61.3 · agg@16 429.2 · accept_len 6.63" },
-        "10": { "label": "10", "hint": "single 65.2 · agg@16 435.1 — best aggregate" },
+        "10": { "label": "10", "hint": "single 65.2 · agg@16 435.1 — best aggregate in the sweep" },
         "12": { "label": "12", "hint": "single 75.1 · agg@16 402.8" },
         "14": { "label": "14", "hint": "single 78.8 · agg@16 386.5" },
-        "16": { "label": "16", "hint": "single 78.6 — best single-stream (+28% vs 8) · agg@16 384.8" },
+        "16": { "label": "16", "hint": "single 78.6 · agg@16 384.8 — tops the single-stream band, tied with 14 within noise (+28% vs 8)" },
         "20": { "label": "20", "hint": "single 72.0 · agg@16 330.7 — accept_rate collapses to 0.40" },
         "24": { "label": "24", "hint": "single 69.0 · agg@16 284.5 — accept_rate 0.32" }
       }
