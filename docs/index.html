@@ -5,9 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Qwen3.8-27B on DGX Spark — recipe configurator</title>
   <meta name="description" content="Pick your workload for Qwen3.8-27B (NVFP4 + DFlash2) on an ASUS DGX Spark and copy a single measured serving command. SGLang, GB10.">
+  <script>
+    // Apply a pinned theme before first paint so there is no flash of the
+    // wrong color. "system" (the default) leaves the attribute unset so the
+    // prefers-color-scheme media query decides. The tri-state control itself
+    // is wired up in app.js.
+    (function () {
+      try {
+        var t = localStorage.getItem("site-theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
+  <div class="theme-seg" role="group" aria-label="Color theme">
+    <button type="button" data-theme-choice="system" class="on" aria-pressed="true">System</button>
+    <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+    <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+  </div>
   <header class="hero">
     <div class="wrap">
       <h1><span id="heroTitle">Qwen3.8-27B on DGX Spark</span><span class="tag">GB10 · SGLang · NVFP4 · DFlash2</span></h1>

@@ -10,6 +10,47 @@ let DATA = null;
 let state = {};
 let fmt = "docker";
 
+// ---- theme (system / light / dark) ------------------------------------------
+
+const THEME_KEY = "site-theme";
+
+function savedTheme() {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    return t === "light" || t === "dark" ? t : "system";
+  } catch (e) {
+    return "system";
+  }
+}
+
+function applyTheme(t) {
+  if (t === "system") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+}
+
+function renderThemeControl() {
+  const t = savedTheme();
+  document.querySelectorAll(".theme-seg button").forEach(function (b) {
+    const on = b.dataset.themeChoice === t;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+
+function bindThemeEvents() {
+  document.querySelectorAll(".theme-seg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      const t = b.dataset.themeChoice;
+      try {
+        if (t === "system") localStorage.removeItem(THEME_KEY);
+        else localStorage.setItem(THEME_KEY, t);
+      } catch (e) { /* private mode: choice just does not persist */ }
+      applyTheme(t);
+      renderThemeControl();
+    });
+  });
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -405,6 +446,10 @@ function renderAll() {
 }
 
 window.addEventListener("DOMContentLoaded", function () {
+  applyTheme(savedTheme());
+  bindThemeEvents();
+  renderThemeControl();
+
   fetch("assets/data.json")
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
