@@ -346,6 +346,16 @@ function renderHero() {
   }).join("");
 }
 
+function renderBuy() {
+  const b = DATA.buy;
+  if (!b) return;
+  document.getElementById("buyCard").innerHTML =
+    "<h2>" + esc(b.heading) + "</h2>" +
+    '<p class="buy-body">' + esc(b.body) + "</p>" +
+    '<a class="buy-cta" href="' + esc(b.url) + '" target="_blank" rel="noopener sponsored">' + esc(b.cta) + "</a>" +
+    '<p class="buy-disclosure">' + esc(b.disclosure) + "</p>";
+}
+
 function renderVerify() {
   const v = DATA.verify;
   document.getElementById("verifyBody").innerHTML =
@@ -460,6 +470,7 @@ window.addEventListener("DOMContentLoaded", function () {
       initState();
       bindEvents();
       renderHero();
+      renderBuy();
       renderAxes();
       renderCommandCard();
       renderVerify();

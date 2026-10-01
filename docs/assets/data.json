@@ -11,6 +11,13 @@
     { "label": "TTFT", "value": "190 ms", "note": "n=5, draft=8" },
     { "label": "HumanEval pass@1", "value": "97.0%", "note": "thinking on, 159/164" }
   ],
+  "buy": {
+    "heading": "Want these numbers on your own desk?",
+    "body": "Every figure on this page — from 78.6 tok/s single-stream to 97.0% HumanEval — runs on one NVIDIA DGX Spark: the GB10 Grace Blackwell superchip with 128 GB of unified memory. No cluster, no cloud bill, just one box on your desk.",
+    "cta": "Get the NVIDIA DGX Spark on Amazon",
+    "url": "https://link.amazon/B07LGQPdr",
+    "disclosure": "Referral link — no extra cost to you."
+  },
   "pinned": {
     "image": "lmsysorg/sglang:dev-cu13-qwen38-27b-dflash2",
     "targetRepo": "RadixArk/Qwen3.8-27B-NVFP4",

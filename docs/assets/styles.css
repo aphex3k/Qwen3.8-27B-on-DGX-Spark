@@ -207,6 +207,22 @@ main { padding: 24px 0 40px; }
 .card h2 { margin: 0 0 10px; font-size: 19px; }
 .card h3 { margin: 14px 0 6px; font-size: 14px; }
 
+/* hardware offer */
+.buy { border-color: var(--accent); }
+.buy-body { margin: 0 0 12px; font-size: 14px; color: var(--text-mid); max-width: 70ch; }
+.buy-cta {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px 18px;
+  border-radius: 7px;
+}
+.buy-cta:hover { filter: brightness(1.08); }
+.buy-disclosure { font-size: 11.5px; color: var(--text-soft); margin: 10px 0 0; }
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
