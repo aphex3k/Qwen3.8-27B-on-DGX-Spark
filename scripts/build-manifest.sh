@@ -7,7 +7,10 @@
 # Tags and default branches move; digests and commits do not.
 set -uo pipefail
 
-WORKDIR="${GB10_WORKDIR:-$HOME/spark}"
+# Must match 01-build-and-fetch.sh's default (its parent of the clone) or the
+# manifest will read a different toolkit checkout.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORKDIR="${GB10_WORKDIR:-$(dirname "$ROOT")}"
 TOOLKIT="$WORKDIR/Qwen3.8-27B-SGLang-DGX-Spark"
 HF_HUB="${HF_HOME:-$HOME/.cache/huggingface}/hub"
 BASE_IMAGE=lmsysorg/sglang:qwen38-27b

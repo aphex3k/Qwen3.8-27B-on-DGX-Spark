@@ -1,0 +1,213 @@
+{
+  "meta": {
+    "title": "Qwen3.8-27B on DGX Spark",
+    "subtitle": "SGLang + NVFP4 + DFlash2 speculative decoding — a measured recipe for the GB10.",
+    "hardware": "One ASUS DGX Spark (GB10): 128 GB unified memory, aarch64, Ubuntu 24.04, driver 580.173.02 / CUDA 13.0, Docker 29.2.1.",
+    "reproduced": "Reproduced on a second GB10 — boot-to-boot variance is ~8% on single-stream, so read small deltas as noise."
+  },
+  "headlines": [
+    { "label": "Single-stream", "value": "78.6 tok/s", "note": "draft=16, thinking off" },
+    { "label": "Peak aggregate", "value": "480.7 tok/s", "note": "16 streams, cap 16, draft=8" },
+    { "label": "TTFT", "value": "190 ms", "note": "n=5, draft=8" },
+    { "label": "HumanEval pass@1", "value": "97.0%", "note": "thinking on, 159/164" }
+  ],
+  "pinned": {
+    "image": "lmsysorg/sglang:dev-cu13-qwen38-27b-dflash2",
+    "targetRepo": "RadixArk/Qwen3.8-27B-NVFP4",
+    "targetRevision": "554ebba9b5f1b79dc11246341960360e6ef05ef4",
+    "draftRepo": "z-lab/Qwen3.8-27B-DFlash2",
+    "draftRevision": "50307d4c4cde6860d4eee73e2547cd786fe8e8a4",
+    "toolkit": "MiaAI-Lab/Qwen3.8-27B-SGLang-DGX-Spark @ c90d8c34",
+    "cpuset": "5-9,15-19",
+    "notes": [
+      "262144 context is the model default, so no --context-len flag is needed.",
+      "CPU pinned to 5-9,15-19 (the Cortex-X5 cores); first boot ≈ 3 min, weights ~25 GB download into the host HF cache on first run.",
+      "All model repos are public — no HF token required."
+    ]
+  },
+  "repo": {
+    "url": "https://github.com/aphex3k/Qwen3.8-27B-on-DGX-Spark",
+    "resultsUrl": "results/RESULTS.md"
+  },
+  "defaultState": { "tier": "high-throughput", "spec": "on", "draft": "10", "ssm": "bfloat16", "mem": "0.85", "path": "standalone" },
+  "shippedState": { "tier": "interactive", "spec": "on", "draft": "8", "ssm": "bfloat16", "mem": "0.85", "path": "standalone" },
+
+  "axes": {
+    "tier": {
+      "label": "Workload",
+      "intro": "Concurrency on this hybrid Gated-DeltaNet model is bought with mamba state slots, not KV cache. Each request needs 5 slots; SGLang clamps max_running_requests = pool / 5. Three flags move together — this card sets all of them.",
+      "options": {
+        "interactive": {
+          "label": "Interactive",
+          "hint": "One user, best single-stream decode. Pool 20 / cap 4 / graph 4.",
+          "flags": { "--max-mamba-cache-size": "20", "--max-running-requests": "4", "--cuda-graph-max-bs-decode": "4" }
+        },
+        "high-throughput": {
+          "label": "High throughput",
+          "hint": "Concurrent serving; peak aggregate 480.7 tok/s at 16 streams. Pool 80 / cap 16 / graph 16. Costs ~5% single-stream and 11.8 GB of GDN state.",
+          "flags": { "--max-mamba-cache-size": "80", "--max-running-requests": "16", "--cuda-graph-max-bs-decode": "16" }
+        }
+      }
+    },
+    "spec": {
+      "label": "DFlash2 speculative decoding",
+      "intro": "A 27B draft model proposes tokens that the target verifies. It is the largest single-stream lever measured on this box (+28% at draft=16). Off means plain target-only decoding.",
+      "options": {
+        "on": { "label": "On", "hint": "DFLASH + pinned draft model. Measured everywhere in this recipe." },
+        "off": { "label": "Off", "hint": "Not measured in this recipe — expect roughly target-only decode speed." }
+      }
+    },
+    "draft": {
+      "label": "Draft tokens",
+      "intro": "--speculative-num-draft-tokens. The optima diverge: 16 is best single-stream, 10 best for concurrent serving. Past 16, accept_len falls — the drafter can no longer sustain long correct runs, so extra draft compute buys rejected tokens.",
+      "options": {
+        "6":  { "label": "6",  "hint": "single 49.5 · agg@16 404.2" },
+        "7":  { "label": "7",  "hint": "single 55.7 · agg@16 386.6" },
+        "8":  { "label": "8 · shipped", "hint": "single 61.3 · agg@16 429.2 · accept_len 6.63" },
+        "10": { "label": "10", "hint": "single 65.2 · agg@16 435.1 — best aggregate" },
+        "12": { "label": "12", "hint": "single 75.1 · agg@16 402.8" },
+        "14": { "label": "14", "hint": "single 78.8 · agg@16 386.5" },
+        "16": { "label": "16", "hint": "single 78.6 — best single-stream (+28% vs 8) · agg@16 384.8" },
+        "20": { "label": "20", "hint": "single 72.0 · agg@16 330.7 — accept_rate collapses to 0.40" },
+        "24": { "label": "24", "hint": "single 69.0 · agg@16 284.5 — accept_rate 0.32" }
+      }
+    },
+    "ssm": {
+      "label": "SSM state dtype",
+      "intro": "--mamba-ssm-dtype. bfloat16 halves the GDN state pool. Left unset, SGLang resolves to float32 and the pool doubles — on a 128 GB unified box that is 15.6 → 30.9 GB at pool 80, leaving ~12 GB free.",
+      "options": {
+        "bfloat16": { "label": "bfloat16 · default", "hint": "3.8 GB pool at 20 slots, 15.6 GB at 80. The measured setting." },
+        "float32":  { "label": "float32", "hint": "7.6 GB at 20 slots, 30.9 GB at 80. Not measured as a serving config." }
+      }
+    },
+    "mem": {
+      "label": "Mem fraction",
+      "intro": "--mem-fraction-static. Not a performance lever here: 0.82 / 0.85 / 0.90 all measure within run-to-run noise, and the 1M token cap stays in every case. 0.85 is the settled default — baseline throughput with the most headroom.",
+      "options": {
+        "0.82": { "label": "0.82", "hint": "single 60.0 · 16-stream 480.7 · 20.6 GB free" },
+        "0.85": { "label": "0.85 · default", "hint": "single 61.8 · 16-stream 472.0 · 26.1 GB free" },
+        "0.90": { "label": "0.90", "hint": "single 62.3 · 16-stream 468.7 · 25.3 GB free — use only after a known-good boot" }
+      }
+    },
+    "path": {
+      "label": "Serving path",
+      "intro": "Standalone gives one self-contained docker command. SparkStation adds the supervisor, the LiteLLM gateway on :8000, and automatic model lifecycle — at the cost of editing models.yaml.",
+      "options": {
+        "standalone": { "label": "Standalone docker", "hint": "One docker run, server on :8888, no orchestration." },
+        "sparkstation": { "label": "SparkStation", "hint": "Supervisor + gateway on :8000; model on :8001 (bridge)." }
+      }
+    }
+  },
+
+  "baseFlags": [
+    ["--model-path", "RadixArk/Qwen3.8-27B-NVFP4"],
+    ["--revision", "554ebba9b5f1b79dc11246341960360e6ef05ef4"],
+    ["--served-model-name", "qwen3.8-27b-sglang"],
+    ["--trust-remote-code"],
+    ["--host", "0.0.0.0"],
+    ["--port", "8888"],
+    ["--mem-fraction-static", "0.85"],
+    ["--kv-cache-dtype", "fp8_e4m3"],
+    ["--attention-backend", "flashinfer"],
+    ["--chunked-prefill-size", "8192"],
+    ["--disable-prefill-cuda-graph"],
+    ["--mamba-ssm-dtype", "bfloat16"],
+    ["--mamba-full-memory-ratio", "4.21"],
+    ["--mamba-radix-cache-strategy", "extra_buffer"],
+    ["--max-mamba-cache-size", "20"],
+    ["--max-running-requests", "4"],
+    ["--max-total-tokens", "1048576"],
+    ["--speculative-algorithm", "DFLASH"],
+    ["--speculative-draft-model-path", "z-lab/Qwen3.8-27B-DFlash2"],
+    ["--speculative-draft-model-revision", "50307d4c4cde6860d4eee73e2547cd786fe8e8a4"],
+    ["--speculative-num-draft-tokens", "8"],
+    ["--speculative-draft-window-size", "2048"],
+    ["--reasoning-parser", "qwen3"],
+    ["--tool-call-parser", "qwen3_coder"],
+    ["--sampling-defaults", "model"],
+    ["--cuda-graph-max-bs-decode", "4"],
+    ["--sleep-on-idle"],
+    ["--enable-priority-scheduling"],
+    ["--default-priority-value", "0"],
+    ["--priority-scheduling-preemption-threshold", "10"],
+    ["--enable-metrics"],
+    ["--enable-cache-report"]
+  ],
+
+  "specOffFlags": [
+    "--speculative-algorithm",
+    "--speculative-draft-model-path",
+    "--speculative-draft-model-revision",
+    "--speculative-num-draft-tokens",
+    "--speculative-draft-window-size"
+  ],
+
+  "cells": {
+    "interactive|on|8|bfloat16|0.85":   { "single": 61.3, "ttftMs": 190, "note": "Shipped default: draft 8, pool 20." },
+    "interactive|on|6|bfloat16|0.85":   { "single": 49.5 },
+    "interactive|on|7|bfloat16|0.85":   { "single": 55.7 },
+    "interactive|on|10|bfloat16|0.85":  { "single": 65.2 },
+    "interactive|on|12|bfloat16|0.85":  { "single": 75.1 },
+    "interactive|on|14|bfloat16|0.85":  { "single": 78.8 },
+    "interactive|on|16|bfloat16|0.85":  { "single": 78.6, "note": "Fresh-boot re-measurement; two of three runs cluster at 84–86, so 78.6 is likely the low end of the spread." },
+    "interactive|on|20|bfloat16|0.85":  { "single": 72.0 },
+    "interactive|on|24|bfloat16|0.85":  { "single": 69.0 },
+    "high-throughput|on|8|bfloat16|0.82": { "agg16": 480.7, "single": 60.0, "freeGb": 20.6, "note": "The headline 480.7 tok/s aggregate (pool 80, cap 16)." },
+    "high-throughput|on|8|bfloat16|0.85": { "agg16": 472.0, "single": 61.8, "freeGb": 26.1 },
+    "high-throughput|on|8|bfloat16|0.90": { "agg16": 468.7, "single": 62.3, "freeGb": 25.3 },
+    "high-throughput|on|10|bfloat16|0.85": { "agg16": 435.1, "single": 65.2, "note": "Best measured aggregate at cap 16." },
+    "high-throughput|on|6|bfloat16|0.85":  { "agg16": 404.2 },
+    "high-throughput|on|7|bfloat16|0.85":  { "agg16": 386.6 },
+    "high-throughput|on|12|bfloat16|0.85": { "agg16": 402.8 },
+    "high-throughput|on|14|bfloat16|0.85": { "agg16": 386.5 },
+    "high-throughput|on|16|bfloat16|0.85": { "agg16": 384.8 },
+    "high-throughput|on|20|bfloat16|0.85": { "agg16": 330.7 },
+    "high-throughput|on|24|bfloat16|0.85": { "agg16": 284.5 }
+  },
+
+  "warnings": {
+    "memHigh": "mem-fraction 0.90: two machines — this project's and the toolkit's — recorded unrecoverable wedges during weight load at higher fractions (GB10 unified memory starves the OS). Use 0.85 unless the box was already known-good at a higher fraction.",
+    "ssmFloat32": "float32 SSM state doubles the GDN pool (15.6 → 30.9 GB at pool 80) and leaves only ~12 GB free. bfloat16 is the measured setting; float32 is not measured as a serving config.",
+    "specOff": "Speculative decoding off: this recipe was measured with DFlash2 on, and the draft is the largest single-stream lever (+28% at draft 16). Expect target-only decode speed — numbers here are not from this repo's measurements.",
+    "offline": "First start still touches the network even with a warm cache: SGLang's early speculative probe resolves the draft config without a revision, so a cache holding only the pinned snapshot can still fetch that repo's default ref. Prime the cache while online.",
+    "htPool": "High-throughput pool: 80 slots buys ~11.8 GB of GDN state and ~5% single-stream speed. Revert to the interactive pool if this is a single-user box."
+  },
+
+  "sparkstation": {
+    "install": [
+      "curl -LsSf https://astral.sh/uv/install.sh | sh",
+      "git clone --depth 1 https://github.com/kshetrajna12/sparkstation.git",
+      "cd sparkstation && uv sync",
+      "cp .env.example .env   # TOTAL_UNIFIED_MEMORY_GB=128, MEMORY_HARD_LIMIT_GB=110"
+    ],
+    "start": "uv run sparkstation start -d --profile generic",
+    "gateway": "Gateway on :8000 (LiteLLM); the model container is bridge-networked, its internal :8000 maps to host :8001. Gateway overhead measured at zero.",
+    "caveats": [
+      "The qwen3.8-sglang entry ships pinned to a second machine (host: worker1) — set host: primary.",
+      "On current sparkstation main the generic profile no longer lists qwen3.8-sglang (kept for rollback); check the profile you actually use — a profile-level host: wins.",
+      "HEALTH_CHECK_TIMEOUT_SECONDS=5 × 3 failures restarts a healthy model under long-prefill saturation: raise it to 30.",
+      "extra_args.mem_fraction_static needs the sparkstation-mem-fraction-override patch — the stock launcher hard-clamps at 0.82 and ignores anything higher.",
+      "uv installs cli.py into site-packages: editing the repo copy does nothing, copy edited modules into .venv/lib/python3.12/site-packages/ too.",
+      "Never docker rm -f a managed container — the supervisor state goes stale; use sparkstation stop && start."
+    ]
+  },
+
+  "verify": {
+    "intro": "Everything below reads only environment variables (see .env.example in the repo) — nothing assumes /root or any particular clone location. Run it from wherever the repo lives.",
+    "envStandalone": [
+      "export GB10_BASE_URL=http://127.0.0.1:8888/v1",
+      "export GB10_MODEL=qwen3.8-27b-sglang",
+      "export GB10_API_KEY=dummy-key"
+    ],
+    "envGateway": [
+      "export GB10_BASE_URL=http://127.0.0.1:8000/v1",
+      "export GB10_MODEL=default",
+      "export GB10_API_KEY=dummy-key"
+    ],
+    "run": [
+      "python3 bench/perf.py            # TTFT, single-stream, concurrency, prefill",
+      "./scripts/run-humaneval.sh      # quality, thinking off (~5 min)",
+      "./scripts/run-humaneval.sh think   # thinking on (~20 min)"
+    ]
+  }
+}

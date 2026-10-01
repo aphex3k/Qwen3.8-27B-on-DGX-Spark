@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qwen3.8-27B on DGX Spark — recipe configurator</title>
+  <meta name="description" content="Pick your workload for Qwen3.8-27B (NVFP4 + DFlash2) on an ASUS DGX Spark and copy a single measured serving command. SGLang, GB10.">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1><span id="heroTitle">Qwen3.8-27B on DGX Spark</span><span class="tag">GB10 · SGLang · NVFP4 · DFlash2</span></h1>
+      <p class="lede" id="heroLede"></p>
+      <p class="hardware" id="heroHardware"></p>
+      <div class="headlines" id="headlines"></div>
+      <p class="repro" id="heroRepro"></p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="error" id="loadError" hidden></div>
+
+    <section class="grid" id="axes" aria-label="Configuration axes"></section>
+
+    <section class="card" id="cmdCard" aria-label="Generated command">
+      <div class="card-head">
+        <h2>Serving command</h2>
+        <div class="seg" id="fmtToggle" role="group" aria-label="Command format">
+          <button type="button" data-fmt="docker" class="on">Docker</button>
+          <button type="button" data-fmt="python">Python</button>
+        </div>
+        <span id="badge" class="pill unverified"></span>
+      </div>
+      <div id="cmdBody"></div>
+      <p class="note" id="cmdNote"></p>
+      <p class="share-row">Share this configuration: <code id="shareUrl"></code></p>
+    </section>
+
+    <section class="card" id="verifyCard" aria-label="Second step: benchmarks">
+      <h2>Second step — verify it yourself</h2>
+      <div id="verifyBody"></div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap" id="footerBody"></div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
