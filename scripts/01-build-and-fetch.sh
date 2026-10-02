@@ -18,7 +18,11 @@ set -euo pipefail
 IMAGE="${IMAGE:-lmsysorg/sglang:dev-cu13-qwen38-27b-dflash2}"
 BUILD_LOCAL="${BUILD_LOCAL:-0}"
 
-WORKDIR="${GB10_WORKDIR:-$HOME/spark}"
+# Defaults live next to this repo's parent so it works from any clone
+# location. The toolkit's start.sh uses WORK_DIR="$(pwd)", so always cd into
+# the toolkit dir before running it.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORKDIR="${GB10_WORKDIR:-$(dirname "$ROOT")}"
 TOOLKIT="$WORKDIR/Qwen3.8-27B-SGLang-DGX-Spark"
 TARGET_REPO="RadixArk/Qwen3.8-27B-NVFP4"
 TARGET_REV="${TARGET_REV:-554ebba9b5f1b79dc11246341960360e6ef05ef4}"

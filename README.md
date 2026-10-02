@@ -20,6 +20,15 @@ Reproduce with [`bench/`](bench/). Full data in
 build inputs behind those numbers are in
 [`results/BUILD-MANIFEST.md`](results/BUILD-MANIFEST.md).
 
+<https://aphex3k.github.io/Qwen3.8-27B-on-DGX-Spark/> — a static GitHub Pages
+configurator for this recipe: pick your workload axes and copy a single,
+measured docker command that starts the server with no clone-path assumptions.
+
+**Paths.** The scripts in this repo are self-locating and work from any clone
+location. The toolkit clone and helper venv live in `$GB10_WORKDIR` — default:
+the parent directory of this repo's clone; override with `export GB10_WORKDIR=…`
+to choose anywhere else. Nothing in this repo hard-codes a home directory.
+
 ## Ingredients
 
 | Component | Pin |
@@ -47,8 +56,15 @@ DGX OS ships CDI, not a registered Docker runtime — `docker info` showing only
 ## 2. Pull the image, fetch the weights
 
 ```bash
+# Optional: choose where the toolkit clone + helper venv live.
+# Default is the parent directory of this repo's clone.
+# export GB10_WORKDIR=/path/of/your/choice
+
 ./scripts/01-build-and-fetch.sh     # pulls the official image + weights
 ```
+
+Works from any clone location; the toolkit lands in
+`$GB10_WORKDIR/Qwen3.8-27B-SGLang-DGX-Spark`.
 
 LMSYS published official DFlash2 images on 2026-08-22: `dev-cu13-qwen38-27b-dflash2`,
 `dev-qwen38-27b-dflash2`, `dev-cu12-qwen38-27b-dflash2`, arm64 included. Only the
@@ -59,11 +75,14 @@ LMSYS published official DFlash2 images on 2026-08-22: `dev-cu13-qwen38-27b-dfla
 Get a number before adding orchestration.
 
 ```bash
-cd ~/spark/Qwen3.8-27B-SGLang-DGX-Spark   # required: start.sh uses WORK_DIR="$(pwd)"
+cd "$GB10_WORKDIR/Qwen3.8-27B-SGLang-DGX-Spark"   # required: start.sh uses WORK_DIR="$(pwd)"
 cp -n .env.sample .env
 IMAGE=lmsysorg/sglang:dev-cu13-qwen38-27b-dflash2 \
   DF_EXTRA="--mem-fraction-static 0.85" ./start-dflash.sh
 ```
+
+(If you ran step 2 with the default, this is the repo's parent directory. The
+script's "Next:" line prints the exact path it used.)
 
 Serves on **:8888**, OpenAI- and Anthropic-compatible. First boot ≈3 min.
 
@@ -167,9 +186,18 @@ rejected. `accept_rate` collapses from 0.80 to 0.32.
 
 ## 7. Benchmark quality
 
+Everything here is a **second step that does not depend on paths**: the bench
+scripts are self-locating and read only `GB10_BASE_URL` / `GB10_API_KEY` /
+`GB10_MODEL` from the environment (see [`.env.example`](.env.example)). Run
+them from wherever this repo is cloned — no `cd ~/spark` anywhere.
+
 ```bash
+export GB10_BASE_URL=http://127.0.0.1:8888/v1   # standalone; or :8000 for the gateway
+export GB10_MODEL=qwen3.8-27b-sglang            # standalone; "default" for the gateway
+
 ./scripts/run-humaneval.sh          # thinking off, ~5 min
 ./scripts/run-humaneval.sh think    # thinking on,  ~20 min
+python3 bench/perf.py               # TTFT / single-stream / concurrency / prefill
 ```
 
 164 problems at temperature 0, each executed against its real unit tests in a
